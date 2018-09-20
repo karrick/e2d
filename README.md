@@ -14,9 +14,12 @@ milliseconds since the epoch, or the number of nanoseconds since the
 epoch by providing either the --milliseconds or the --nanoseconds
 command line flag.
 
-By default the output date-time strings are displayed in the local
-time zone. This program can also display the date-time string in UTC
-format by providing the --utc command line flag.
+By default this program displays the date-time strings in your
+computer's local time zone, which may or may not be UTC. To force this
+program to output the date-time strings in UTC, use the --utc command
+line flag. If your computer is configured to use UTC by default, there
+is no way for this program to know what your local time zone is, so
+output will always be in UTC.
 
 When provided command line arguments, this program converts each one
 to a human readable date-time string. When no non-option command line
