@@ -1,40 +1,110 @@
 package main
 
 import (
-	"flag"
+	"bufio"
+	"errors"
 	"fmt"
-	"math"
+	"io"
 	"os"
 	"path/filepath"
+	"strconv"
 	"time"
+
+	"github.com/karrick/golf"
+	"github.com/karrick/golinewrap"
+	"github.com/karrick/gows"
 )
 
-func usage() {
-	fmt.Fprintf(os.Stderr, "usage: %s [-s <seconds> | -m <milliseconds> | -n <nanoseconds>]\n", filepath.Base(os.Args[0]))
-	os.Exit(2)
+var (
+	optHelp         = golf.BoolP('h', "help", false, "When true, displays help then exits.")
+	optMilliseconds = golf.BoolP('m', "milliseconds", false, "Use milliseconds rather than seconds.")
+	optNanoseconds  = golf.BoolP('n', "nanoseconds", false, "Use nanoseconds rather than seconds.")
+	optUTC          = golf.BoolP('u', "utc", false, "Display times in UTC rather than in local time zone.")
+)
+
+func help(err error) {
+	if err != nil {
+		_, _ = fmt.Fprintf(lineWrapping(os.Stderr), "ERROR: %s", err)
+		_, _ = fmt.Fprintln(os.Stderr)
+	}
+
+	golf.Usage()
+	_, _ = fmt.Fprintf(os.Stderr, "\nUSAGE:\t%s [-m | -n] [-u] [epoch1 [epoch2 ...]]\n\n", filepath.Base(os.Args[0]))
+
+	message := `With one or more command line arguments, displays the
+        corresponding human readable time values. Without command line
+        arguments, displays the corresponding human readable time value for
+        each line of standard input.`
+	_, _ = fmt.Fprintf(lineWrapping(os.Stderr), message)
 }
 
 func main() {
-	var seconds, milliseconds, nanoseconds float64
+	golf.Parse()
 
-	flag.Float64Var(&seconds, "s", math.NaN(), "use seconds")
-	flag.Float64Var(&milliseconds, "m", math.NaN(), "use milliseconds")
-	flag.Float64Var(&nanoseconds, "n", math.NaN(), "use nanoseconds")
-	flag.Parse()
-
-	if flag.NArg() != 0 {
-		usage()
+	if *optHelp {
+		help(nil)
+		os.Exit(0)
 	}
 
-	if !math.IsNaN(seconds) {
-		// no-op
-	} else if !math.IsNaN(milliseconds) {
-		seconds = milliseconds * float64(time.Millisecond) / float64(time.Second)
-	} else if !math.IsNaN(nanoseconds) {
-		seconds = nanoseconds * float64(time.Nanosecond) / float64(time.Second)
-	} else {
-		usage()
+	if *optMilliseconds && *optNanoseconds {
+		help(errors.New("cannot provide both --milliseconds and --nanoseconds command line flags."))
+		os.Exit(2)
 	}
 
-	fmt.Println(time.Unix(int64(seconds), 0))
+	divisor := 1.0
+	if *optMilliseconds {
+		divisor = float64(time.Second / time.Millisecond)
+	} else if *optNanoseconds {
+		divisor = float64(time.Second / time.Nanosecond)
+	}
+
+	if golf.NArg() > 0 {
+		for _, arg := range golf.Args() {
+			display(divisor, arg)
+		}
+		os.Exit(0)
+	}
+
+	scanner := bufio.NewScanner(os.Stdin)
+	for scanner.Scan() {
+		display(divisor, scanner.Text())
+	}
+	if err := scanner.Err(); err != nil {
+		fmt.Fprintf(os.Stderr, "ERROR: %s\n", err)
+		os.Exit(1)
+	}
+}
+
+func display(divisor float64, value string) {
+	f64, err := strconv.ParseFloat(value, 64)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "WARNING: %s\n", err)
+		return
+	}
+
+	f64 /= divisor // convert value to seconds
+
+	sec := int64(f64)
+	nsec := int64((f64 - float64(sec)) * float64(time.Second/time.Nanosecond))
+
+	t := time.Unix(sec, nsec)
+	if *optUTC {
+		t = t.UTC()
+	}
+
+	fmt.Println(t.String())
+}
+
+func lineWrapping(w io.Writer) io.Writer {
+	columns, _, err := gows.GetWinSize()
+	if err != nil {
+		return w
+	}
+
+	lw, err := golinewrap.New(w, columns, "")
+	if err != nil {
+		return w
+	}
+
+	return lw
 }
