@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/karrick/golf"
@@ -16,6 +17,8 @@ import (
 )
 
 var (
+	optDelimiter    = golf.StringP('d', "delimiter", " ", "Use STRING as field delimiter rather than whitespace.")
+	optField        = golf.UintP('f', "field", 0, "When not 0, specifies the field number to convert to a time.")
 	optHelp         = golf.BoolP('h', "help", false, "When true, displays help then exits.")
 	optMilliseconds = golf.BoolP('m', "milliseconds", false, "Use milliseconds rather than seconds.")
 	optNanoseconds  = golf.BoolP('n', "nanoseconds", false, "Use nanoseconds rather than seconds.")
@@ -33,12 +36,16 @@ func help(err error) {
 	_, _ = fmt.Fprintf(lw, "Simple CLI application to convert a epoch value to a date-time string.")
 
 	golf.Usage()
-	_, _ = fmt.Fprintf(os.Stderr, "\nUSAGE:\t%s [-m | -n] [-u] [epoch1 [epoch2 ...]]\n\n", filepath.Base(os.Args[0]))
+	_, _ = fmt.Fprintf(os.Stderr, "\nUSAGE:\t%s [-m | -n] [-u] [--uptime] [epoch1 [epoch2 ...]]\n\n", filepath.Base(os.Args[0]))
 
 	message := `With one or more command line arguments, displays the
         corresponding human readable time values. Without command line
-        arguments, displays the corresponding human readable time value for
-        each line of standard input.`
+        arguments, program runs as a filter, attempting to convert either the
+        entire line, or a specified field, from a numerical epoch to a human
+        readable date value. When running as a filter, if the line, or specified
+        field, fails to parse as a number, this program emits that line
+        unchanged and suppresses all warning messages.`
+
 	_, _ = fmt.Fprintf(lw, message)
 }
 
@@ -62,28 +69,109 @@ func main() {
 		divisor = float64(time.Second / time.Nanosecond)
 	}
 
+	offset, err := getOffset()
+	if err != nil {
+		_, _ = fmt.Fprintf(os.Stderr, "ERROR: %s\n", err)
+		os.Exit(1)
+	}
+
 	if golf.NArg() > 0 {
 		for _, arg := range golf.Args() {
-			display(divisor, arg)
+			s, err := display(divisor, offset, arg)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "WARNING: %s\n", err)
+				continue
+			}
+			fmt.Println(s)
 		}
 		os.Exit(0)
 	}
 
 	scanner := bufio.NewScanner(os.Stdin)
 	for scanner.Scan() {
-		display(divisor, scanner.Text())
+		line := scanner.Text()
+		if !*optDmesg && *optField == 0 {
+			s, err := display(divisor, offset, line)
+			if err != nil {
+				fmt.Println(line)
+				continue
+			}
+			fmt.Println(s)
+			continue
+		}
+
+		if len(line) == 0 {
+			fmt.Println()
+			continue
+		}
+
+		if *optDmesg {
+			// first character is `[`
+			if line[0] != '[' {
+				fmt.Println(line)
+				continue
+			}
+
+			// grab all until `]`
+			end := strings.Index(line, "]")
+			if end < 0 {
+				fmt.Println(line)
+				continue
+			}
+
+			start := strings.LastIndex(line[:end], " ") + 1
+			if start == 0 {
+				// When cannot find first space, then there is none, and should
+				// start at first index, which is the character immediately
+				// following the [.
+				start = 1
+			}
+
+			s, err := display(divisor, offset, line[start:end])
+			if err != nil {
+				// could not convert field, so emit unchanged line
+				fmt.Println(line)
+				continue
+			}
+
+			fmt.Printf("[%s%s\n", s, line[end:])
+			continue
+		}
+
+		var fields []string
+		if *optDelimiter == " " {
+			fields = strings.Fields(line)
+		} else {
+			fields = strings.Split(line, *optDelimiter)
+		}
+
+		if uint(len(fields)) < *optField {
+			// line does not have enough fields, so emit unchanged line
+			fmt.Println(line)
+			continue
+		}
+
+		s, err := display(divisor, offset, fields[*optField-1])
+		if err != nil {
+			// could not convert field, so emit unchanged line
+			fmt.Println(line)
+			continue
+		}
+
+		fields[*optField-1] = s
+		fmt.Println(strings.Join(fields, *optDelimiter))
 	}
+
 	if err := scanner.Err(); err != nil {
 		fmt.Fprintf(os.Stderr, "ERROR: %s\n", err)
 		os.Exit(1)
 	}
 }
 
-func display(divisor float64, value string) {
+func display(divisor float64, offset int64, value string) (string, error) {
 	f64, err := strconv.ParseFloat(value, 64)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "WARNING: %s\n", err)
-		return
+		return "", err
 	}
 
 	f64 /= divisor // convert value to seconds
@@ -91,12 +179,12 @@ func display(divisor float64, value string) {
 	sec := int64(f64)
 	nsec := int64((f64 - float64(sec)) * float64(time.Second/time.Nanosecond))
 
-	t := time.Unix(sec, nsec)
+	t := time.Unix(sec+offset, nsec)
 	if *optUTC {
 		t = t.UTC()
 	}
 
-	fmt.Println(t.String())
+	return t.String(), nil
 }
 
 func lineWrapping(w io.Writer) io.Writer {
