@@ -23,10 +23,14 @@ var (
 )
 
 func help(err error) {
+	lw := lineWrapping(os.Stderr)
+
 	if err != nil {
-		_, _ = fmt.Fprintf(lineWrapping(os.Stderr), "ERROR: %s", err)
-		_, _ = fmt.Fprintln(os.Stderr)
+		_, _ = fmt.Fprintf(lw, "ERROR: %s", err)
+		_, _ = fmt.Fprintln(os.Stderr) // force additional newline after error message
 	}
+
+	_, _ = fmt.Fprintf(lw, "Simple CLI application to convert a epoch value to a date-time string.")
 
 	golf.Usage()
 	_, _ = fmt.Fprintf(os.Stderr, "\nUSAGE:\t%s [-m | -n] [-u] [epoch1 [epoch2 ...]]\n\n", filepath.Base(os.Args[0]))
@@ -35,7 +39,7 @@ func help(err error) {
         corresponding human readable time values. Without command line
         arguments, displays the corresponding human readable time value for
         each line of standard input.`
-	_, _ = fmt.Fprintf(lineWrapping(os.Stderr), message)
+	_, _ = fmt.Fprintf(lw, message)
 }
 
 func main() {
