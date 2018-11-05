@@ -2,6 +2,7 @@
 
 package main
 
-var optDmesg *bool
+var dummy bool
+var optDmesg *bool = &dummy
 
 func getOffset() (int64, error) { return 0, nil }
