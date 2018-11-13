@@ -30,3 +30,13 @@ converts each line to the corresponding date-time string.
 $ e2d 1502400972
 2017-08-10 17:36:12 -0400 EDT
 ```
+
+## Installation
+
+If you don't have the Go programming language installed, then you'll
+need to install a copy from
+[https://golang.org/dl](https://golang.org/dl).
+
+Once you have Go installed:
+
+    $ go get github.com/karrick/e2d
