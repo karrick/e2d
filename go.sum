@@ -1,10 +1,9 @@
-github.com/karrick/golf v1.1.0 h1:pW5IaAZlmRaq2TVHp1ct0XouZw206+wSL+ifUF6fnp8=
-github.com/karrick/golf v1.1.0/go.mod h1:qGN0IhcEL+IEgCXp00RvH32UP59vtwc8w5YcIdArNRk=
-github.com/karrick/golinewrap v0.1.1 h1:q1hW+J9b69DdmX/FAhP7sGZtKInXX1MMa9Fwhfyy4RQ=
-github.com/karrick/golinewrap v0.1.1/go.mod h1:bM+TUBQzubzQBPBVWbAg8LCqimu8DvVSZRpBFyaBCJg=
-github.com/karrick/gows v0.2.0 h1:A3QxTsreOYJFMjSsQVTRLVcP0A6GlN3Qm1QQGKXai4g=
-github.com/karrick/gows v0.2.0/go.mod h1:RPJT0IZu1OFjLcNCCvsCSZhKipEPs674qUV3daa3MJA=
-golang.org/x/sys v0.0.0-20180321135609-bb729a57828d h1:a8ZOYYftKRZ2vpMVp1ZuzHSJhErp2PuEsgL7IZlgg7o=
-golang.org/x/sys v0.0.0-20180321135609-bb729a57828d/go.mod h1:STP8DvDyc/dI5b8T5hshtkjS+E42TnysNCUPdjciGhY=
+github.com/karrick/golf v1.4.0 h1:9i9HnUh7uCyUFJhIqg311HBibw4f2pbGldi0ZM2FhaQ=
+github.com/karrick/golf v1.4.0/go.mod h1:qGN0IhcEL+IEgCXp00RvH32UP59vtwc8w5YcIdArNRk=
+github.com/karrick/golinewrap v0.3.0 h1:rMRPPr8WfCYEAp+oWHselkNhp6H5k2LQS6numOUgvDY=
+github.com/karrick/golinewrap v0.3.0/go.mod h1:bM+TUBQzubzQBPBVWbAg8LCqimu8DvVSZRpBFyaBCJg=
+github.com/karrick/gows v0.3.0 h1:/FGSuBiJMUqNOJPsAdLvHFg7RnkFoWBS8USpdco5ONQ=
+github.com/karrick/gows v0.3.0/go.mod h1:kdZ/jfdo8yqKYn+BMjBkhP+/oRKUABR1abaomzRi/n8=
+golang.org/x/sys v0.0.0-20190626221950-04f50cda93cb/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.19.0 h1:q5f1RH2jigJ1MoAWp2KTp3gm5zAGFUTarQZ5U386+4o=
 golang.org/x/sys v0.19.0/go.mod h1:/VUhepiaJMQUp4+oa/7Zr1D23ma6VTLIYjOOTFZPUcA=
