@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -18,11 +19,13 @@ import (
 
 var (
 	optDelimiter    = golf.StringP('d', "delimiter", " ", "Use STRING as field delimiter rather than whitespace.")
+	optProperty     = golf.StringP('p', "property", " ", "Use STRING as JSON property to replace.")
 	optField        = golf.UintP('f', "field", 0, "When not 0, specifies the field number to convert to a time.")
 	optHelp         = golf.BoolP('h', "help", false, "When true, displays help then exits.")
 	optMilliseconds = golf.BoolP('m', "milliseconds", false, "Use milliseconds rather than seconds.")
 	optNanoseconds  = golf.BoolP('n', "nanoseconds", false, "Use nanoseconds rather than seconds.")
 	optUTC          = golf.BoolP('u', "utc", false, "Display times in UTC rather than in local time zone.")
+	optVerbose      = golf.BoolP('v', "verbose", false, "When true, displays line processing errors.")
 )
 
 func help(err error) {
@@ -77,7 +80,7 @@ func main() {
 
 	if golf.NArg() > 0 {
 		for _, arg := range golf.Args() {
-			s, err := display(divisor, offset, arg)
+			s, err := displayString(divisor, offset, arg)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "WARNING: %s\n", err)
 				continue
@@ -90,9 +93,25 @@ func main() {
 	scanner := bufio.NewScanner(os.Stdin)
 	for scanner.Scan() {
 		line := scanner.Text()
-		if !*optDmesg && *optField == 0 {
-			s, err := display(divisor, offset, line)
+		if *optProperty != "" {
+			s, err := property(divisor, offset, line, *optProperty)
 			if err != nil {
+				if *optVerbose {
+					fmt.Fprintf(os.Stderr, "ERROR: %s\n", err)
+				}
+				fmt.Println(line)
+				continue
+			}
+			fmt.Println(s)
+			continue
+		}
+
+		if !*optDmesg && *optField == 0 {
+			s, err := displayString(divisor, offset, line)
+			if err != nil {
+				if *optVerbose {
+					fmt.Fprintf(os.Stderr, "ERROR: %s\n", err)
+				}
 				fmt.Println(line)
 				continue
 			}
@@ -127,9 +146,12 @@ func main() {
 				start = 1
 			}
 
-			s, err := display(divisor, offset, line[start:end])
+			s, err := displayString(divisor, offset, line[start:end])
 			if err != nil {
 				// could not convert field, so emit unchanged line
+				if *optVerbose {
+					fmt.Fprintf(os.Stderr, "ERROR: %s\n", err)
+				}
 				fmt.Println(line)
 				continue
 			}
@@ -151,9 +173,12 @@ func main() {
 			continue
 		}
 
-		s, err := display(divisor, offset, fields[*optField-1])
+		s, err := displayString(divisor, offset, fields[*optField-1])
 		if err != nil {
 			// could not convert field, so emit unchanged line
+			if *optVerbose {
+				fmt.Fprintf(os.Stderr, "ERROR: %s\n", err)
+			}
 			fmt.Println(line)
 			continue
 		}
@@ -168,12 +193,15 @@ func main() {
 	}
 }
 
-func display(divisor float64, offset int64, value string) (string, error) {
+func displayString(divisor float64, offset int64, value string) (string, error) {
 	f64, err := strconv.ParseFloat(value, 64)
 	if err != nil {
 		return "", err
 	}
+	return displayFloat(divisor, offset, f64)
+}
 
+func displayFloat(divisor float64, offset int64, f64 float64) (string, error) {
 	f64 /= divisor // convert value to seconds
 
 	sec := int64(f64)
@@ -199,4 +227,30 @@ func lineWrapping(w io.Writer) io.Writer {
 	}
 
 	return lw
+}
+
+func property(divisor float64, offset int64, line, property string) (string, error) {
+	record := make(map[string]interface{})
+	err := json.Unmarshal([]byte(line), &record)
+	if err != nil {
+		return "", err
+	}
+	epoch_any, ok := record[property]
+	if !ok {
+		return "", fmt.Errorf("no such property: %q", property)
+	}
+	epoch_float, ok := epoch_any.(float64)
+	if !ok {
+		return "", fmt.Errorf("expected float64: %T(%v)", epoch_any, epoch_any)
+	}
+	dt, err := displayFloat(divisor, offset, epoch_float)
+	if err != nil {
+		return "", err
+	}
+	record[property] = dt
+	s, err := json.Marshal(record)
+	if err != nil {
+		return "", err
+	}
+	return string(s), nil
 }
