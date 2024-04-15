@@ -21,7 +21,7 @@ line flag. If your computer is configured to use UTC by default, there
 is no way for this program to know what your local time zone is, so
 output will always be in UTC.
 
-When provided command line arguments, this program converts each one
+When provided command line arguments, this program converts each
 to a human readable date-time string. When no non-option command line
 arguments are provided, this program reads from standard input, and
 converts each line to the corresponding date-time string.
@@ -29,6 +29,24 @@ converts each line to the corresponding date-time string.
 ```Bash
 $ e2d 1502400972
 2017-08-10 17:36:12 -0400 EDT
+```
+
+### Translate the value of a particular text field.
+
+```Bash
+$ e2d --field 3 space-delimited.log
+```
+
+### Translate the value of a particular text field with a non-space delimiter.
+
+```Bash
+$ e2d --microseconds --delimiter , --field 3 comma-delimited.txt
+```
+
+### Translate the value of a JSON property.
+
+```Bash
+$ e2d --nanoseconds --property epoch newline-terminated-json.log
 ```
 
 ## Installation
@@ -39,4 +57,4 @@ need to install a copy from
 
 Once you have Go installed:
 
-    $ go get github.com/karrick/e2d
+    $ go install github.com/karrick/e2d@latest

@@ -19,11 +19,11 @@ import (
 
 var (
 	optDelimiter    = golf.StringP('d', "delimiter", " ", "Use STRING as field delimiter rather than whitespace.")
-	optProperty     = golf.StringP('p', "property", " ", "Use STRING as JSON property to replace.")
 	optField        = golf.UintP('f', "field", 0, "When not 0, specifies the field number to convert to a time.")
 	optHelp         = golf.BoolP('h', "help", false, "When true, displays help then exits.")
 	optMilliseconds = golf.BoolP('m', "milliseconds", false, "Use milliseconds rather than seconds.")
 	optNanoseconds  = golf.BoolP('n', "nanoseconds", false, "Use nanoseconds rather than seconds.")
+	optProperty     = golf.StringP('p', "property", " ", "Use STRING as JSON property to replace.")
 	optUTC          = golf.BoolP('u', "utc", false, "Display times in UTC rather than in local time zone.")
 	optVerbose      = golf.BoolP('v', "verbose", false, "When true, displays line processing errors.")
 )
@@ -39,7 +39,7 @@ func help(err error) {
 	_, _ = fmt.Fprintf(lw, "Simple CLI application to convert a epoch value to a date-time string.")
 
 	golf.Usage()
-	_, _ = fmt.Fprintf(os.Stderr, "\nUSAGE:\t%s [-m | -n] [-u] [--uptime] [epoch1 [epoch2 ...]]\n\n", filepath.Base(os.Args[0]))
+	_, _ = fmt.Fprintf(os.Stderr, "\nUSAGE:\t%s [-m | -n] [-p PROPERTY] [-u] [--uptime] [epoch1 [epoch2 ...]]\n\n", filepath.Base(os.Args[0]))
 
 	message := `With one or more command line arguments, displays the
         corresponding human readable time values. Without command line
